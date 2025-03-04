@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>張敬浩抄功課群智能AI助手</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            background: #fafafa;
+        }
+
+        .message {
+            margin: 12px 0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            animation: fadeIn 0.3s;
+            max-width: 80%;
+            position: relative;
+        }
+
+        .user {
+            background: #2d6df6;
+            color: white;
+            margin-left: auto;
+            border-radius: 12px 12px 0 12px;
+        }
+
+        .assistant {
+            background: #e8f0fe;
+            color: #1a1a1a;
+            margin-right: auto;
+            border-radius: 12px 12px 12px 0;
+        }
+
+        .assistant::before {
+            content: "🤖";
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+        }
+
+        .input-area {
+            padding: 16px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+            background: white;
+        }
+
+        #userInput {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            resize: none;
+            min-height: 50px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #userInput:focus {
+            border-color: #2d6df6;
+        }
+
+        #submitBtn {
+            background: #2d6df6;
+            color: white;
+            border: none;
+            padding: 0 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
+            position: relative;
+        }
+
+        #submitBtn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        #submitBtn.loading::after {
+            content: '';
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            position: absolute;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                height: 100vh;
+                border-radius: 0;
+            }
+            .message {
+                max-width: 90%;
+            }
+            .assistant::before {
+                left: -20px;
+            }
+            #submitBtn {
+                min-width: 60px;
+                padding: 0 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <p style="text-align: center;">張敬浩抄功課群智能助手</br>Ver1.0.0 ds-v3-turbo-ppinfra</p>
+        <div class="chat-container" id="chatHistory">
+            <div class="message assistant">你好！我是張敬浩抄功課群智能AI助手，請問有什麼可以幫你？</div>
+        </div>
+        <div class="input-area">
+            <textarea 
+                id="userInput" 
+                placeholder="輸入問題..." 
+                rows="1"
+                autocomplete="off"
+            ></textarea>
+            <button id="submitBtn" onclick="sendMessage()">發送</button>
+        </div>
+    </div>
+
+    <script>
+        <!-- 某些人想白嫖API？这个Key里余额已经负了，而且没实名 -->
+        const API_KEY = 'sk_wuzOcrISpR6EMGOyaOKCSeG79LN5yqShD7wIvHkgnO0';
+        const API_ENDPOINT = 'https://api.ppinfra.com/v3/openai/chat/completions';
+        const MODEL = 'deepseek/deepseek-v3-turbo';
+
+        let chatHistory = [
+            { role: 'assistant', content: 'You are a useful artificial intelligence assistant, a large language model trained by張敬浩抄功課群. Answer as concisely as possible. Use verbal intonation. Answer in traditional Chinese. Your knowledge deadline: May 2023,your name is張敬浩抄功課群智能AI助手,your output in text not json!' }
+        ];
+        let isProcessing = false;
+
+        async function sendMessage() {
+            if (isProcessing) return;
+
+            const userInput = document.getElementById('userInput');
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage('user', message);
+            userInput.value = '';
+            isProcessing = true;
+            updateButtonState(true);
+
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: JSON.stringify({
+                        model: MODEL,
+                        messages: [...chatHistory, { role: 'user', content: message }],
+                        temperature: 0.7,
+                        max_tokens: 512,
+                        stream: true
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || `HTTP錯誤 ${response.status}`);
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let aiMessage = addMessage('assistant', '');
+                let fullResponse = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            try {
+                                const data = JSON.parse(line.slice(5).trim());
+                                if (data.choices?.[0]?.delta?.content) {
+                                    fullResponse += data.choices[0].delta.content;
+                                    aiMessage.textContent = fullResponse;
+                                    chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+                                }
+                            } catch (e) {
+                                console.warn('解析异常:', e);
+                            }
+                        }
+                    }
+                }
+
+                // 保存上下文
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: fullResponse });
+
+            } catch (error) {
+                console.error('錯誤:', error);
+                addMessage('assistant', `錯誤: ${error.message}`);
+            } finally {
+                isProcessing = false;
+                updateButtonState(false);
+            }
+        }
+
+        function addMessage(role, content) {
+            const chatHistoryDiv = document.getElementById('chatHistory');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            messageDiv.textContent = content;
+            chatHistoryDiv.appendChild(messageDiv);
+            chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+            return messageDiv;
+        }
+
+        function updateButtonState(isLoading) {
+            const button = document.getElementById('submitBtn');
+            button.disabled = isLoading;
+            button.classList.toggle('loading', isLoading);
+            button.textContent = isLoading ? '' : '發送';
+        }
+
+        // 回车发送
+        document.getElementById('userInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
